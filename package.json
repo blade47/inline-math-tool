@@ -1,0 +1,39 @@
+{
+  "name": "@blade47/editorjs-inline-math-tool",
+  "version": "1.0.0",
+  "keywords": [
+    "codex editor",
+    "math-tool",
+    "editor.js",
+    "editorjs"
+  ],
+  "description": "Math Tool for Editor.js",
+  "license": "MIT",
+  "repository": "",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/inline-math-tool.umd.js",
+  "module": "./dist/inline-math-tool.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/inline-math-tool.mjs",
+      "require": "./dist/inline-math-tool.umd.js"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "author": {
+    "name": "AFL Solutions SRL"
+  },
+  "devDependencies": {
+    "vite": "^4.5.0",
+    "vite-plugin-css-injected-by-js": "^3.3.0"
+  },
+  "dependencies": {
+    "@codexteam/icons": "^0.0.5",
+    "katex": "^0.16.10"
+  }
+}
