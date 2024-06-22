@@ -1,6 +1,8 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
+import './index.css';
+
 class InlineMathTool {
   static get isInline() {
     return true;
@@ -33,7 +35,7 @@ class InlineMathTool {
   render() {
     this.button = document.createElement('button');
     this.button.type = 'button';
-    this.button.innerHTML = 'LaTeX';
+    this.button.classList.add('ce-inline-tool');
     this.button.classList.add('latex-tool-button');
     return this.button;
   }
