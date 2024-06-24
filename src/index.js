@@ -1,21 +1,30 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
+import './index.css';
+
 class InlineMathTool {
   static get isInline() {
     return true;
   }
 
-  static get title() {
-    return 'LaTeX';
-  }
-
   static get sanitize() {
     return {
       span: {
+        class: true,
         'data-formula': true,
+        contenteditable: true,
+        style: true,
       },
     };
+  }
+
+  static get shortcut() {
+    return 'CMD+M';
+  }
+
+  static get title() {
+    return 'LaTeX';
   }
 
   constructor({ api }) {
@@ -26,7 +35,7 @@ class InlineMathTool {
   render() {
     this.button = document.createElement('button');
     this.button.type = 'button';
-    this.button.innerHTML = 'LaTeX';
+    this.button.classList.add('ce-inline-tool');
     this.button.classList.add('latex-tool-button');
     return this.button;
   }
@@ -40,16 +49,14 @@ class InlineMathTool {
     const span = document.createElement('span');
 
     span.classList.add('latex-inline');
+    span.setAttribute('contenteditable', 'false'); // Make the LaTeX span uneditable
     const formula = selectedText.textContent.trim();
     span.setAttribute('data-formula', formula);
     range.deleteContents();
     range.insertNode(span);
 
     this.renderFormula(span);
-
-    span.addEventListener('dblclick', () => {
-      this.showModal(span);
-    });
+    this.addEventListeners(span);
   }
 
   checkState(selection) {
@@ -70,6 +77,11 @@ class InlineMathTool {
   }
 
   showModal(span) {
+    // Check if a modal already exists
+    if (document.querySelector('.latex-modal')) {
+      return;
+    }
+
     const modal = document.createElement('div');
     modal.classList.add('latex-modal');
 
@@ -96,6 +108,21 @@ class InlineMathTool {
     });
 
     document.body.appendChild(modal);
+  }
+
+  addEventListeners(span) {
+    if (!span.hasAttribute('data-listener-added')) {
+      span.addEventListener('click', () => {
+        this.showModal(span);
+      });
+      span.setAttribute('data-listener-added', 'true'); // Mark that the listener has been added
+    }
+  }
+
+  addEventListenersToAll() {
+    document.querySelectorAll('.latex-inline').forEach((span) => {
+      this.addEventListeners(span); // Ensure `this` context is correct
+    });
   }
 }
 
