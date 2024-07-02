@@ -4,17 +4,21 @@ import 'katex/dist/katex.min.css';
 import './index.css';
 
 class InlineMathTool {
+  static get CSS() {
+    return 'afl-inline-latex';
+  }
+
   static get isInline() {
     return true;
   }
 
   static get sanitize() {
     return {
-      span: {
-        class: true,
-        'data-formula': true,
+      latex: {
+        span: {
+          class: InlineMathTool.CSS,
+        },
         contenteditable: true,
-        style: true,
       },
     };
   }
@@ -27,102 +31,97 @@ class InlineMathTool {
     return 'LaTeX';
   }
 
-  constructor({ api }) {
+  constructor({ api, data }) {
     this.api = api;
     this.button = null;
+    this.tag = 'LATEX';
+    this.data = data;
+
+    this.iconClasses = {
+      base: this.api.styles.inlineToolButton,
+      active: this.api.styles.inlineToolButtonActive,
+    };
   }
 
   render() {
     this.button = document.createElement('button');
     this.button.type = 'button';
-    this.button.classList.add('ce-inline-tool');
     this.button.classList.add('latex-tool-button');
+    this.button.classList.add(this.iconClasses.base);
+
     return this.button;
   }
 
   surround(range) {
-    if (this.api.selection.isCollapsed) {
+    if (!range) {
       return;
     }
 
-    const selectedText = range.extractContents();
-    const span = document.createElement('span');
+    const termWrapper = this.api.selection.findParentTag(this.tag, InlineMathTool.CSS);
 
-    span.classList.add('latex-inline');
-    span.setAttribute('contenteditable', 'false'); // Make the LaTeX span uneditable
-    const formula = selectedText.textContent.trim();
-    span.setAttribute('data-formula', formula);
-    range.deleteContents();
-    range.insertNode(span);
-
-    this.renderFormula(span);
-    this.addEventListeners(span);
+    if (termWrapper) {
+      this.unwrap(termWrapper);
+    } else {
+      this.wrap(range);
+    }
   }
 
-  checkState(selection) {
-    const parent = selection.anchorNode.parentElement;
-    this.button.classList.toggle('active', parent && parent.closest('span.latex-inline'));
+  wrap(range) {
+    const selectedText = range.extractContents().textContent.trim();
+
+    const wrapper = document.createElement(this.tag);
+    wrapper.style.display = 'inline-block';
+    wrapper.setAttribute('contenteditable', 'false');
+
+    const latexElem = document.createElement('span');
+    latexElem.classList.add(InlineMathTool.CSS);
+    latexElem.style.display = 'none';
+    latexElem.innerText = selectedText;
+
+    const formulaElem = document.createElement('span');
+    formulaElem.innerText = selectedText;
+
+    wrapper.appendChild(latexElem);
+    wrapper.appendChild(formulaElem);
+
+    range.insertNode(wrapper);
+
+    this.api.selection.expandToTag(wrapper);
+
+    this.renderFormula(formulaElem);
   }
 
-  renderFormula(span) {
+  unwrap(termWrapper) {
+    this.api.selection.expandToTag(termWrapper);
+
+    const sel = window.getSelection();
+    const range = sel.getRangeAt(0);
+
+    const unwrappedContent = range.extractContents();
+
+    termWrapper.parentNode.removeChild(termWrapper);
+
+    range.insertNode(unwrappedContent);
+
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  checkState() {
+    const termTag = this.api.selection.findParentTag(this.tag, InlineMathTool.CSS);
+
+    this.button.classList.toggle(this.iconClasses.active, !!termTag);
+  }
+
+  renderFormula(element) {
     try {
-      const formula = span.getAttribute('data-formula') || '';
-      span.innerHTML = ''; // Clear the span's content before rendering
-      katex.render(formula, span, {
+      const formula = element.innerText || '';
+      katex.render(formula, element, {
         throwOnError: false,
       });
     } catch (error) {
-      span.textContent = error.message;
+      element.textContent = error.message;
     }
-  }
-
-  showModal(span) {
-    // Check if a modal already exists
-    if (document.querySelector('.latex-modal')) {
-      return;
-    }
-
-    const modal = document.createElement('div');
-    modal.classList.add('latex-modal');
-
-    const textarea = document.createElement('textarea');
-    textarea.value = span.getAttribute('data-formula') || '';
-    modal.appendChild(textarea);
-
-    const saveButton = document.createElement('button');
-    saveButton.textContent = 'Save';
-    modal.appendChild(saveButton);
-
-    const cancelButton = document.createElement('button');
-    cancelButton.textContent = 'Cancel';
-    modal.appendChild(cancelButton);
-
-    saveButton.addEventListener('click', () => {
-      span.setAttribute('data-formula', textarea.value);
-      this.renderFormula(span);
-      document.body.removeChild(modal);
-    });
-
-    cancelButton.addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
-
-    document.body.appendChild(modal);
-  }
-
-  addEventListeners(span) {
-    if (!span.hasAttribute('data-listener-added')) {
-      span.addEventListener('click', () => {
-        this.showModal(span);
-      });
-      span.setAttribute('data-listener-added', 'true'); // Mark that the listener has been added
-    }
-  }
-
-  addEventListenersToAll() {
-    document.querySelectorAll('.latex-inline').forEach((span) => {
-      this.addEventListeners(span); // Ensure `this` context is correct
-    });
   }
 }
 
