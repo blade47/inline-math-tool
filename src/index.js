@@ -57,17 +57,25 @@ class InlineMathTool {
       return;
     }
 
-    const termWrapper = this.api.selection.findParentTag(this.tag, InlineMathTool.CSS);
+    const termWrapper = this.api.selection.findParentTag(this.tag);
 
-    if (termWrapper) {
-      this.unwrap(termWrapper);
-    } else {
+    const fragment = range.cloneContents();
+    const latex = fragment.querySelectorAll(`span.afl-inline-latex`);
+    if (latex.length > 1) {
+      return;
+    } else if (latex.length == 0) {
       this.wrap(range);
+    } else if (termWrapper) {
+      this.showModal(termWrapper);
     }
   }
 
   wrap(range) {
     const selectedText = range.extractContents().textContent.trim();
+
+    if (selectedText.length < 1) {
+      return;
+    }
 
     const wrapper = document.createElement(this.tag);
     wrapper.style.display = 'inline-block';
@@ -89,22 +97,7 @@ class InlineMathTool {
     this.api.selection.expandToTag(wrapper);
 
     this.renderFormula(formulaElem);
-  }
-
-  unwrap(termWrapper) {
-    this.api.selection.expandToTag(termWrapper);
-
-    const sel = window.getSelection();
-    const range = sel.getRangeAt(0);
-
-    const unwrappedContent = range.extractContents();
-
-    termWrapper.parentNode.removeChild(termWrapper);
-
-    range.insertNode(unwrappedContent);
-
-    sel.removeAllRanges();
-    sel.addRange(range);
+    this.addEventListeners(wrapper);
   }
 
   checkState() {
@@ -122,6 +115,65 @@ class InlineMathTool {
     } catch (error) {
       element.textContent = error.message;
     }
+  }
+
+  showModal(latex) {
+    // Check if a modal already exists
+    if (document.querySelector('.latex-modal')) {
+      return;
+    }
+    const modal = document.createElement('div');
+    modal.classList.add('latex-modal');
+
+    const span = latex.querySelector('span.afl-inline-latex');
+    const textarea = document.createElement('textarea');
+    textarea.value = span.innerHTML || '';
+    modal.appendChild(textarea);
+
+    const saveButton = document.createElement('button');
+    saveButton.textContent = 'Save';
+    modal.appendChild(saveButton);
+
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    modal.appendChild(cancelButton);
+
+    saveButton.addEventListener('click', () => {
+      span.innerText = textarea.value;
+      const allSpans = latex.querySelectorAll('span');
+      allSpans.forEach((latexSpan) => {
+        if (!latexSpan.classList.contains('afl-inline-latex')) {
+          latexSpan.remove();
+        }
+      });
+      const formulaElem = document.createElement('span');
+      formulaElem.innerText = textarea.value;
+
+      latex.appendChild(formulaElem);
+      this.renderFormula(formulaElem);
+      document.body.removeChild(modal);
+    });
+
+    cancelButton.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    document.body.appendChild(modal);
+  }
+
+  addEventListeners(latexTag) {
+    if (!latexTag.hasAttribute('data-listener-added')) {
+      latexTag.addEventListener('click', () => {
+        this.showModal(latexTag);
+      });
+      latexTag.setAttribute('data-listener-added', 'true'); // Mark that the listener has been added
+    }
+  }
+
+  addEventListenersToAll() {
+    document.querySelectorAll(this.tag).forEach((latexTag) => {
+      this.addEventListeners(latexTag);
+    });
   }
 }
 
