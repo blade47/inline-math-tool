@@ -41,6 +41,8 @@ class InlineMathTool {
       base: this.api.styles.inlineToolButton,
       active: this.api.styles.inlineToolButtonActive,
     };
+
+    this.addEventListenersToAll();
   }
 
   render() {
@@ -123,20 +125,29 @@ class InlineMathTool {
       return;
     }
     const modal = document.createElement('div');
-    modal.classList.add('latex-modal');
+    modal.classList.add('latex-modal-overlay');
+
+    const content = document.createElement('div');
+    content.classList.add('latex-modal-content');
+
+    const closeButton = document.createElement('button');
+    closeButton.classList.add('latex-modal-content-button-close');
+    closeButton.textContent = '✖';
+    content.appendChild(closeButton);
 
     const span = latex.querySelector('span.afl-inline-latex');
     const textarea = document.createElement('textarea');
+    textarea.classList.add('latex-modal-content-textarea');
     textarea.value = span.innerHTML || '';
-    modal.appendChild(textarea);
+    textarea.rows = '5';
+    content.appendChild(textarea);
 
     const saveButton = document.createElement('button');
+    saveButton.classList.add('latex-modal-content-button');
     saveButton.textContent = 'Save';
-    modal.appendChild(saveButton);
+    content.appendChild(saveButton);
 
-    const cancelButton = document.createElement('button');
-    cancelButton.textContent = 'Cancel';
-    modal.appendChild(cancelButton);
+    modal.appendChild(content);
 
     saveButton.addEventListener('click', () => {
       span.innerText = textarea.value;
@@ -154,7 +165,7 @@ class InlineMathTool {
       document.body.removeChild(modal);
     });
 
-    cancelButton.addEventListener('click', () => {
+    closeButton.addEventListener('click', () => {
       document.body.removeChild(modal);
     });
 
