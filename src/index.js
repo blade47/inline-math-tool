@@ -8,6 +8,10 @@ class InlineMathTool {
     return 'afl-inline-latex';
   }
 
+  static get EVENT_LISTENER() {
+    return 'im-has-data-listener';
+  }
+
   static get isInline() {
     return true;
   }
@@ -15,11 +19,25 @@ class InlineMathTool {
   static get sanitize() {
     return {
       latex: {
-        span: {
-          class: InlineMathTool.CSS,
-        },
         contenteditable: true,
+        style: true,
       },
+      span: function (el) {
+        return (
+          el.classList.contains('katex') ||
+          el.classList.contains('katex-mathml') ||
+          el.classList.contains('katex-html') ||
+          el.classList.contains('base') ||
+          el.classList.contains('strut') ||
+          el.classList.contains('mord') ||
+          el.classList.contains('afl-inline-latex') ||
+          el.classList.length === 0
+        );
+      },
+      math: true,
+      semantics: true,
+      mrow: true,
+      mi: true,
     };
   }
 
@@ -62,7 +80,7 @@ class InlineMathTool {
     const termWrapper = this.api.selection.findParentTag(this.tag);
 
     const fragment = range.cloneContents();
-    const latex = fragment.querySelectorAll(`span.afl-inline-latex`);
+    const latex = fragment.querySelectorAll(`span.${InlineMathTool.CSS}`);
     if (latex.length > 1) {
       return;
     } else if (latex.length == 0) {
@@ -153,7 +171,7 @@ class InlineMathTool {
       span.innerText = textarea.value;
       const allSpans = latex.querySelectorAll('span');
       allSpans.forEach((latexSpan) => {
-        if (!latexSpan.classList.contains('afl-inline-latex')) {
+        if (!latexSpan.classList.contains(InlineMathTool.CSS)) {
           latexSpan.remove();
         }
       });
@@ -173,11 +191,11 @@ class InlineMathTool {
   }
 
   addEventListeners(latexTag) {
-    if (!latexTag.hasAttribute('data-listener-added')) {
+    if (!latexTag.hasAttribute(InlineMathTool.EVENT_LISTENER)) {
       latexTag.addEventListener('click', () => {
         this.showModal(latexTag);
       });
-      latexTag.setAttribute('data-listener-added', 'true'); // Mark that the listener has been added
+      latexTag.setAttribute(InlineMathTool.EVENT_LISTENER, 'true');
     }
   }
 
